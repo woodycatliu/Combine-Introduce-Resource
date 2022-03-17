@@ -1,0 +1,85 @@
+<body style="background-color: rgba(0, 0, 0, 0.95);"></body>
+<html><head><style>body {
+   color: rgb(255, 255, 255);
+}
+</style></head><body><h3 id="-reactive-programming">響應式編程 Reactive Programming</h3>
+<blockquote>
+<p>此篇將以 <code>Swift</code> 的角度去簡化 RP 理論的解釋  </p>
+</blockquote>
+<p>對於 iOS/OS 開發前端，這兩年很頻繁的會聽到這個名詞。<br>尤其是 Apple 推出 SwiftUI 與 Combine 以後，似乎 RxSwift 已經變成不是選修條件，越來越多公司在職缺條件中 Combine 或 RxSwift 是必要條件。<br><strong>註：Combine/ RXSwift 是 RP 的高階封裝框架。</strong>  </p>
+<h4 id="-rp-">什麼是響應式編程(RP) ?</h4>
+<p>相信很多人 Google 之後會更加模糊，尤其是閱讀完 <a href="https://en.wikipedia.org/wiki/Reactive_programming"  style="color:rgb(71, 250, 250);">Wikipedia</a> 艱深又空洞的理論介紹後，只看到一堆專業術語跟更多沒見過的名詞。    </p>
+<p><strong>別擔心</strong> 我會試著解釋這一切。<br><br></p>
+<hr>
+<h4 id="-"><strong>解決的問題</strong></h4>
+<p>RP 解決 <strong>Data 與 View</strong> 是不同步的問題，<br>在前端開發中，數據變化後再手動通知View 重新渲染，而在需求的增加與迭代開發後，最後就是<strong><code>數據變化</code></strong>與<strong><code>刷新視圖</code></strong>充斥在各處，交錯依賴難以維護。<br><strong>(請見下方的偽代碼)</strong></p>
+<pre><code><span class="hljs-keyword">var</span> userInfo = <span class="hljs-type">User</span>()  
+
+<span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">fetchUserInfo</span><span class="hljs-params">()</span></span> {  
+      task.fetchAPI { data <span class="hljs-keyword">in</span>
+      <span class="hljs-keyword">guard</span> <span class="hljs-keyword">let</span> userInfo = <span class="hljs-keyword">try</span>? decord(data) 
+           <span class="hljs-keyword">else</span> { <span class="hljs-keyword">return</span> }  
+       <span class="hljs-keyword">self</span>.userInfo = userInfo
+       <span class="hljs-keyword">self</span>.view.reload()
+        }
+    }
+
+<span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">changeUserName</span><span class="hljs-params">()</span></span> {  
+      userInfo.name = <span class="hljs-string">"Jhonny"</span>  
+      view.reload()  
+    }
+
+<span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">changeUser</span><span class="hljs-params">()</span></span> {  
+       userInfo = newUserInfo()  
+       view.reload()  
+    }
+</code></pre><p><br></p>
+<h4 id="-"><strong>實現的方法</strong></h4>
+<p>透過 <strong><code>資訊傳遞</code></strong> 的流動，拆分解藕每一個步驟。<br>想像一下河流有其 <strong><code>源頭</code></strong> 、 <strong><code>目的地</code></strong> 與每一個 <strong><code>節點</code></strong>，<br>透過這樣的劃分，這一切似乎就更好的去管理與控制河流的變化。  </p>
+<ul>
+<li><strong>事件 Event</strong> (源頭)：remote url request、database request ....</li>
+<li><strong>轉換 Operator</strong> (節點)：decord, data transform...</li>
+<li><strong>綁定 Binding</strong> (目的地)：data cache、發送事件結束消息...</li>
+<li><strong>觀察 Observe</strong> (目的地之後)：渲染畫面、下一個事件開始...  </li>
+</ul>
+<h4 id="-">透過封裝後，把上面的邏輯組裝起來</h4>
+<pre><code><span class="hljs-function"><span class="hljs-title">fetchUserInfo</span><span class="hljs-params">()</span></span> <span class="hljs-comment">// Event</span>
+       .decord() <span class="hljs-comment">// Operator</span>
+       .binding(on: self.userInfo) <span class="hljs-comment">// 目的地</span>
+
+<span class="hljs-variable">$self</span><span class="hljs-selector-class">.userInfo</span><span class="hljs-selector-class">.observe</span> { self<span class="hljs-selector-class">.view</span><span class="hljs-selector-class">.reload</span> } <span class="hljs-comment">// Observe</span>
+
+func changeUserName() {  
+      userInfo<span class="hljs-selector-class">.name</span> = <span class="hljs-string">"Jhonny"</span>  
+    }
+ func changeUser() {  
+       userInfo = newUserInfo()  
+    }
+</code></pre><blockquote>
+<ul>
+<li>view 渲染的命令被收斂在對 userInfo 的觀察。  </li>
+<li>userInfo 的相關的變化邏輯都與 UI 層解藕。  </li>
+<li>data 從取得到變形被拆成一段一段去處理，便於管理代碼。  </li>
+</ul>
+</blockquote>
+<p><br></p>
+<hr>
+<h3 id="-vs-">觀察者模式 vs 響應式編程</h3>
+<p>OOP 的 <strong><code>觀察者模式</code></strong> 最常與 <strong><code>RP</code></strong> 做比較，<br>那它們之間最大的差別可以用想要解決的問題與執行的位子的差別來區分。   </p>
+<h4 id="-">觀察者模式：</h4>
+<blockquote>
+<p>為了解決不同物件 1 對多的數據傳遞問題。 </p>
+</blockquote>
+<h4 id="-">響應式編程</h4>
+<blockquote>
+<p>解決 <strong>Data 與 View</strong> 是不同步的問題</p>
+</blockquote>
+<p>所以在實作上， <strong><code>觀察者模式</code></strong> 會在 B 、C、D 物件中對 A 的觀察。
+而 <strong><code>響應式編程</code></strong> 中，物件時常觀察自己內部某個值去執行下一個事件。</p>
+<p><br></p>
+<hr>
+<h3 id="-">響應式編程範圍</h3>
+<p>在轉換成 <strong><code>RP</code></strong> 過程中，你可能會對範圍有所困惑。<br>意思是整支APP的架構要做到什麼程度才算是響應式編程？</p>
+<p>經過一段時間的練習與實作後，<br>我認為 <strong><code>RP</code></strong> 如同其它的設計模式一樣，<br>你可以小到一個 View 內所有的狀態變化流動，<br>也可以大到整支 APP 所有事件與數覺得流動。<br>所以在轉換初期可以先試著已一個 View 與其 ViewModel 做嘗試。</p>
+<p><strong><em>下一章節，將會 Demo 由 Combine 所編寫的 RP</em></strong></p>
+</body></html>

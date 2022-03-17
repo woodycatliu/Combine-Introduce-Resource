@@ -1,0 +1,121 @@
+<body style="background-color: rgba(0, 0, 0, 0.95);"></body>
+<html><head><style>body {
+   color: rgb(255, 255, 255);
+}
+</style></head><body><h3 id="-combine-https-developer-apple-com-documentation-combine-"><a href="https://developer.apple.com/documentation/combine"  style="color:rgb(71, 250, 250);">Combine</a> 基礎概要</h3>
+<p><a href="./響應式編程ReactiveProgramming.html"  style="color:rgb(71, 250, 250);">上一篇</a> 以 <strong>Swift</strong> 角度介紹 <strong>響應式編程</strong> 。<br>接下來我要介紹的是 <strong>Swift</strong> 原生的 <strong>響應式框架</strong> 基本架構與應用。</p>
+<blockquote>
+<p>如果之前你已經學會 <strong>RXSwift</strong> 框架的話，<br>基本上 <strong>Combine</strong> 的應用對你來說可能只是幾分鐘的事情，<br>因為 <strong>Combine</strong> 整體架構與 API 設計 很大一部分都致敬了 <strong>RXSwift</strong>  </p>
+</blockquote>
+<h4 id="-base-component-"><strong>主要組件 Base Component</strong></h4>
+<p>Combine 的架構主要由三個 <strong><code>Protocol</code></strong> 組合起來起來  </p>
+<ul>
+<li>Publisher - 發布商（訊號的源頭)</li>
+<li>Subscription - 訂閱商 (河道-類似經銷商的角色)</li>
+<li>Subscriber - 訂戶 (接收到數據要執行的事情)</li>
+</ul>
+<p><strong>簡易關聯圖</strong>  </p>
+<p><img src="./resource/PSS關聯圖.png" alt="關聯圖"></p>
+<ol>
+<li>Subscriber 向 Publisher 登記一個訂閱，獲取 Subscription。</li>
+<li>Publisher 傳遞數據給 Subscription</li>
+<li>Subscription 再將數據傳遞給 Subscriber  </li>
+</ol>
+<p>基本應用情境下，不會直接接觸到 Publisher 與 Subscriber 的實體，Combine 框架已經將它們封裝在 API 內。<br>我們只要管理好 Subscription 的生命週期即可。  </p>
+<hr>
+<p>接下來的介紹建議搭配 <a href="./CombineIntroduce.playground" style="color:rgb(71, 250, 250);">Playgraound</a></p>
+<h3 id="publisher">Publisher</h3>
+<p>從 Apple 推出 Combine 以後，也陸續替 Swift 基本數據庫中的成員增加 Publisher   以支援 Combine 的橋接。如：Timer, NoticationCenter, NSObject 與 基本型別等。  </p>
+<p><strong>請查看 Publisher 頁籤</strong>  </p>
+<pre><code><span class="hljs-selector-tag">var</span> arr: [Int] = [<span class="hljs-number">0</span>, <span class="hljs-number">1</span>, <span class="hljs-number">2</span>]
+<span class="hljs-selector-tag">var</span> str: String = <span class="hljs-string">"ABCD"</span>
+<span class="hljs-selector-tag">var</span> int: Int = <span class="hljs-number">1000</span>
+
+arr<span class="hljs-selector-class">.publisher</span><span class="hljs-selector-class">.printValue</span>().store(<span class="hljs-keyword">in</span>: &amp;bag)
+str<span class="hljs-selector-class">.publisher</span><span class="hljs-selector-class">.printValue</span>().store(<span class="hljs-keyword">in</span>: &amp;bag)
+int<span class="hljs-selector-class">.words</span><span class="hljs-selector-class">.publisher</span><span class="hljs-selector-class">.printValue</span>().store(<span class="hljs-keyword">in</span>: &amp;bag)
+</code></pre><p>arr, str, int 均提供相應的 Publisher 數據流的傳遞。  </p>
+<blockquote>
+<p> 請試著執行比較差異</p>
+</blockquote>
+<hr>
+<h3 id="subscriber">Subscriber</h3>
+<p>Subscriber 為一段數據流的尾端，它封裝訂閱時所申明要執行的 closure。</p>
+<p><strong>請查看 Subscriber 頁籤</strong>  </p>
+<pre><code><span class="hljs-keyword">var</span> arr: [Int] = [<span class="hljs-number">0</span>, <span class="hljs-number">1</span>, <span class="hljs-number">2</span>]
+<span class="hljs-keyword">let</span> toDo: <span class="hljs-function"><span class="hljs-params">(Int)</span>-&gt;</span> Void = { <span class="hljs-built_in">print</span>($<span class="hljs-number">0</span> * <span class="hljs-number">2</span>) }
+
+arr.publisher
+    .sink(receiveValue: toDo)
+    .store(in: &amp;bag)
+</code></pre><hr>
+<h3 id="subscription">Subscription</h3>
+<p>Subscription 負責傳遞數據，它也掌握流的有效性。  </p>
+<p><strong>請查看 Subscription 頁籤</strong>  </p>
+<pre><code><span class="hljs-keyword">var</span> arr: [Int] = [<span class="hljs-number">0</span>, <span class="hljs-number">1</span>, <span class="hljs-number">2</span>]
+<span class="hljs-keyword">var</span> subscription: AnyCancellable? = arr.publisher
+    .printValue()
+
+subscription?.cancel()
+<span class="hljs-comment">// or</span>
+subscription = <span class="hljs-keyword">nil</span>
+</code></pre><p>Subscription 結束生命週期 或是執行 <strong><code>cancel()</code></strong> 停止訂閱<br>，未來有新的數據就不會再傳遞 。</p>
+<hr>
+<h4 id="-">實體</h4>
+<p>剛剛介紹了 Combine 三個主要協定，<br>當然 Swift 團隊還提供很多遵守這些協定的實體，<br>如：<a href="https://developer.apple.com/documentation/combine/just" style="color:rgb(71, 250, 250);">Just</a> 、<a href="https://developer.apple.com/documentation/combine/future" style="color:rgb(71, 250, 250);">Future</a>、<a href="https://developer.apple.com/documentation/combine/empty" style="color:rgb(71, 250, 250);">Empty</a> ...等。  </p>
+<p>接下來會關注 Combine 內最常用三大元件、  </p>
+<ul>
+<li><a href="https://developer.apple.com/documentation/combine/passthroughsubject" style="color:rgb(71, 250, 250);">PassthroughSubject</a>  </li>
+<li><a href="https://developer.apple.com/documentation/combine/currentvaluesubject" style="color:rgb(71, 250, 250);">CurrentValueSubject
+</a>  </li>
+<li><a href="https://developer.apple.com/documentation/combine/published" style="color:rgb(71, 250, 250);">Published</a>  </li>
+</ul>
+<p>它們直接提升 Swift 對屬性的監聽更加簡單容易，<br>也是整個響應式框架的核心角色。 </p>
+<h3 id="passthroughsubject">PassthroughSubject</h3>
+<p><strong><code>PassthroughSubject</code></strong> 提供發送值的功能，而本身不會存取這個值，就像一個郵差一樣的角色。</p>
+<p><strong>請查看 PassthroughSubject 頁籤</strong>  </p>
+<pre><code>let infailableSubject = PassthroughSubject&lt;<span class="hljs-built_in">Int</span>, Never&gt; ()
+let failableSubject = PassthroughSubject&lt;<span class="hljs-built_in">Int</span>, MyError&gt;()
+
+infailableSubject.<span class="hljs-built_in">send</span>(<span class="hljs-number">1</span>)
+failableSubject.<span class="hljs-built_in">send</span>(<span class="hljs-number">1</span>)
+</code></pre><p>初始化 <strong><code>PassthroughSubject</code></strong> 要先定義 Output 與 Failure 的型別。</p>
+<ul>
+<li>Output : Int   </li>
+<li>Failure : Never, MyError</li>
+</ul>
+<blockquote>
+<p> 請試著執行  </p>
+</blockquote>
+<h4 id="-"><strong>補充</strong></h4>
+<p><strong>Never</strong>：Combine 原生的 Error 型別，意思是Publisher 不會有錯誤狀況。<br><strong>MyError</strong> ：MyError 是我自己定義的錯誤型別 (Sources/Error.swift )  </p>
+<pre><code>public <span class="hljs-class"><span class="hljs-keyword">enum</span> <span class="hljs-title">MyError</span>: <span class="hljs-title">Error</span> {</span>
+    <span class="hljs-keyword">case</span> someError
+    <span class="hljs-keyword">case</span> none
+}
+</code></pre><h3 id="currentvaluesubject">CurrentValueSubject</h3>
+<p><strong><code>CurrentValueSubject</code></strong> 發送一個新值並存取起來。與  <strong><code>PassthroughSubject</code></strong>  不同的是 <strong><code>CurrentValueSubject</code></strong> 會 Cache 最新的值。</p>
+<p><strong>請查看 CurrentValueSubject 頁籤</strong>  </p>
+<pre><code>let infailableSubject = CurrentValueSubject&lt;<span class="hljs-built_in">Int</span>, Never&gt; ()
+let failableSubject = CurrentValueSubject&lt;<span class="hljs-built_in">Int</span>, MyError&gt;()
+
+infailableSubject.<span class="hljs-built_in">send</span>(<span class="hljs-number">1</span>)
+failableSubject.<span class="hljs-built_in">send</span>(<span class="hljs-number">1</span>)
+</code></pre><blockquote>
+<p> 請試著執行  </p>
+</blockquote>
+<h3 id="published">Published</h3>
+<p><strong><code>Published</code></strong> 為一個屬性包裝器類型的 struct 。<br>它會在其封裝的值 <strong>即將</strong> 改變時發送新值的訊號出去。  </p>
+<p><strong>請查看 Published 頁籤</strong>  </p>
+<pre><code>@Published
+<span class="hljs-keyword">var</span> <span class="hljs-keyword">value</span>: Int = <span class="hljs-number">0</span>
+$<span class="hljs-keyword">value</span>..sink(receiveValue: intClosure).store(<span class="hljs-keyword">in</span>: &amp;bag)
+
+<span class="hljs-keyword">value</span> = <span class="hljs-number">1</span> <span class="hljs-comment">// 值接更改即可</span>
+<span class="hljs-keyword">value</span> = <span class="hljs-number">2</span>
+</code></pre><blockquote>
+<p> 請試著執行與 CurrentValueSubject 比較。  </p>
+</blockquote>
+<h4 id="-">補充</h4>
+<p>範例 <strong>PublishedContainer</strong> 內封裝了一個帶有 <strong><code>@Published</code></strong> 標籤的 泛型 value 。<br>因為 <strong><code>Published</code></strong> 必須在 class 內部才能定義。<br>申明觀察帶有 <strong><code>@Published</code></strong> 標籤的值時，需要加上前墜 <strong>$</strong> 符號。  </p>
+</body></html>
